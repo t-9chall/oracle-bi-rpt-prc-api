@@ -1,0 +1,15 @@
+api:
+  id: ""
+# process API authentication details
+client:
+  id: ''
+  secret: ''
+ 
+prc:
+  http:
+    host: ""
+    port: "443"
+    basePath: "/"
+    path: "/"
+
+

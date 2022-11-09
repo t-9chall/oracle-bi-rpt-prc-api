@@ -1,0 +1,5 @@
+truststore:
+  password: ""
+
+keystore:
+  password: ""

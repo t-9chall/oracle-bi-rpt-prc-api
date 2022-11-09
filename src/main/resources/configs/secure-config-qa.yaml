@@ -1,0 +1,18 @@
+keystore:
+  password: "![PTXbRJUdYxs1ENQnWjyYIQ==]"
+
+https:
+  private:
+    port: "8092"
+    
+erp:
+  ws:
+    password: "![kdqQlsz6eSJN6LegFe6w7w==]"
+     
+      
+sftp:
+  directory: "/home/orafstintdev/data-in/WD"
+  host: "205.208.116.22"
+  port: "22"
+  username: "orafstintdev"
+  password: "![n+o5hm1QzxjjsaEhKsKYsZCvSyvAqPngIPoAODFKDBg=]"

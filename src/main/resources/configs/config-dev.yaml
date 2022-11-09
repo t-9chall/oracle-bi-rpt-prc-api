@@ -1,0 +1,41 @@
+api:
+  id: "18283052"
+# process API authentication details
+client:
+  id: ''
+  secret: ''
+https:
+  private:
+    port: "8092"
+to:
+  Address: "lchalla.cw@huronconsultinggroup.com,lchalla.cw@hcg.com,t-9chall@uchicago.edu"
+
+purchaseOrders:
+ system: 'purchaseOrders'
+  
+suppliers:
+ system: 'suppliers'
+  
+retry:
+ count: '3'
+ interval: '30000'
+erp:
+  ws:
+    wsdl: 'https://fa-eusf-test-saasfaprod1.fa.ocs.oraclecloud.com/xmlpserver/services/ExternalReportWSSService?WSDL'
+    service: 'ExternalReportWSSService'
+    port: 'ExternalReportWSSService'
+    address: 'https://fa-eusf-test-saasfaprod1.fa.ocs.oraclecloud.com:443/xmlpserver/services/ExternalReportWSSService'
+    username: 'integration_user'
+sftp:
+  directory:
+   purchaseOrders: "/opt/orafst/purchaseOrders/"
+   suppliers: "/opt/orafst/suppliers/"
+  host: "205.208.116.22"
+  port: "22"
+  username: "orafstintdev"
+  password: "![n+o5hm1QzxjjsaEhKsKYsZCvSyvAqPngIPoAODFKDBg=]"
+  
+smtp :
+  uChicagoHost: "smtp.uchicago.edu"
+  uChicagoPort: "25"
+  fromAddress: "grif-feeds-request@lists.uchicago.edu"

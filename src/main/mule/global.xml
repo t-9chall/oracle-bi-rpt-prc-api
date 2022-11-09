@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:smb="http://www.mulesoft.org/schema/mule/smb" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd  http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/smb http://www.mulesoft.org/schema/mule/smb/current/mule-smb.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+    <http:listener-config name="uchicago-oracle-bi-rpt-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${https.private.port}" protocol="HTTPS">
+            <tls:context>
+                <tls:trust-store insecure="true" />
+                <tls:key-store type="jks" path="certs/itsapi-dev.jks" keyPassword="${secure::keystore.password}" password="${secure::keystore.password}" />
+            </tls:context>
+        </http:listener-connection>
+    </http:listener-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="40185f77-2fb5-4bcb-bc02-63356b3f7b57" file="configs\config-${mule.env}.yaml" />
+    <secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="33359e0a-1731-4d76-b0ab-d94abe7dbb3b" file="configs/secure-config-${mule.env}.yaml" key="${secure.key}" />
+<!--     <import doc:name="Import" doc:id="cc8b0a86-e74c-4cb5-b53d-332130757f00" file="sftp.xml" /> -->
+    <import doc:name="Import" doc:id="fc9f7d1d-81b7-4701-9178-dc53d5ca7087" file="logging.xml" />
+    <import doc:name="Import" doc:id="06119ef1-f488-419e-a624-14cb9983380e" file="error-handling.xml" />
+    <wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="f5fac57b-4f0c-4544-b008-2339d38c32e0">
+        <wsc:connection soapVersion="SOAP12" wsdlLocation="https://fa-eusf-test-saasfaprod1.fa.ocs.oraclecloud.com/xmlpserver/services/ExternalReportWSSService?WSDL" service="#[p('erp.ws.service')]" port="#[p('erp.ws.port')]" address="#[p('erp.ws.address')]">
+            <wsc:web-service-security>
+                <wsc:username-token-security-strategy username="#[p('erp.ws.username')]" password="Huron123!" />
+                <wsc:timestamp-security-strategy timeToLive="1" />
+                <wsc:incoming-timestamp-security-strategy />
+            </wsc:web-service-security>
+        </wsc:connection>
+    </wsc:config>
+    <import doc:name="Import" doc:id="f637a398-12ff-4376-b7ed-3280b513df94" file="emailNotification.xml" />
+	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="a10f3d1b-7527-41b5-8e1f-92d71a60f102" flowRef="oracle-bi-rpt-prc-api-main"/>
+</mule>

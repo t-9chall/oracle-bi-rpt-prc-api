@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <http:listener-config name="oracle-bi-rpt-prc-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="oracle-bi-rpt-prc-api-config" api="resource::baba96a5-08a9-4469-ab79-352941a13000:oracle-bi-rpt-prc-api:1.0.1:raml:zip:oracle-bi-rpt-prc-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="oracle-bi-rpt-prc-api-main">
+        <http:listener config-ref="uchicago-oracle-bi-rpt-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+		<apikit:router config-ref="oracle-bi-rpt-prc-api-config" />
+    </flow>
+    <flow name="get:\health:oracle-bi-rpt-prc-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "API health working fine"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\purchaseOrders:oracle-bi-rpt-prc-api-config">
+		<ee:transform doc:name="Initialize_variables" doc:id="2c68f8a1-2844-4c86-8ce8-13c71a59c5e9">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="transactionId"><![CDATA[correlationId]]></ee:set-variable>
+				<ee:set-variable variableName="system"><![CDATA[%dw 2.0
+output application/java
+---
+p('purchaseOrders.system')]]></ee:set-variable>
+				<ee:set-variable variableName="toAddress"><![CDATA[%dw 2.0
+output application/java
+---
+p('to.Address')]]></ee:set-variable>
+				<ee:set-variable variableName="startDate" ><![CDATA[attributes.queryParams.startDate]]></ee:set-variable>
+				<ee:set-variable variableName="externalSystem" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams.externalSystem]]></ee:set-variable>
+				<ee:set-variable variableName="endDate" ><![CDATA[attributes.queryParams.endDate]]></ee:set-variable>
+				<ee:set-variable variableName="path" ><![CDATA[attributes.maskedRequestPath]]></ee:set-variable>
+				<ee:set-variable variableName="days" ><![CDATA[(attributes.queryParams.endDate - attributes.queryParams.startDate).days]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="orchestration-flow" doc:id="644dbd5a-7803-4a83-b4a1-115157804c26" name="orchestration-flow"/>
+    </flow>
+    <flow name="get:\suppliers:oracle-bi-rpt-prc-api-config">
+		<ee:transform doc:name="Initialize_variables" doc:id="3761f411-4a33-48e8-adfe-8a12460bd40a">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="startDate"><![CDATA[attributes.queryParams.startDate]]></ee:set-variable>
+				<ee:set-variable variableName="transactionId"><![CDATA[correlationId]]></ee:set-variable>
+				<ee:set-variable variableName="system"><![CDATA[%dw 2.0
+output application/java
+---
+p('purchaseOrders.system')]]></ee:set-variable>
+				<ee:set-variable variableName="toAddress"><![CDATA[%dw 2.0
+output application/java
+---
+p('to.Address')]]></ee:set-variable>
+				<ee:set-variable variableName="externalSystem"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.queryParams.externalSystem]]></ee:set-variable>
+				<ee:set-variable variableName="endDate"><![CDATA[attributes.queryParams.endDate]]></ee:set-variable>
+				<ee:set-variable variableName="days" ><![CDATA[(attributes.queryParams.endDate - attributes.queryParams.startDate).days]]></ee:set-variable>
+				<ee:set-variable variableName="path" ><![CDATA[attributes.maskedRequestPath]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="orchestration-flow" doc:id="40a6638e-b64e-4f36-b61c-4e27e6147f5e" name="orchestration-flow"/>
+    </flow>
+<!--     <flow name="get:\reprocess\(system):oracle-bi-rpt-prc-api-config">
+		<ee:transform doc:name="Initialize variables" doc:id="9759376c-4860-4f53-8c3f-e8f5f3a194bb" >
+			<ee:variables >
+				<ee:set-variable variableName="system" ><![CDATA[attributes.uriParams.'system']]></ee:set-variable>
+				<ee:set-variable variableName="category" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+attributes.queryParams.category]]></ee:set-variable>
+				<ee:set-variable variableName="toAddress" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+p('to.Address')]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="orchestration-flow" doc:id="9b3d64b3-a54a-430b-91e1-cf76348472c8" name="orchestration-flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="de649176-21e3-43e7-bbb5-8efe3efebb7d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+-&#45;&#45;
+{
+  status: "200",
+  description: "API reprocessed successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow> -->
+</mule>

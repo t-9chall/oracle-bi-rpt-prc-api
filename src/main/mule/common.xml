@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+
+	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="a507f2d5-e4b5-4554-90eb-0dcafc91db2a" />
+	<sub-flow name="orchestration-flow"
+		doc:id="23fa77ea-d3a6-446f-be08-9afd9296902c">
+<!-- 		<foreach doc:name="For Each" doc:id="c816bf97-780b-46e0-a1a2-6e1b5d9f6458" collection="#[(vars.externalSystem) splitBy ',']"> -->
+			<try doc:name="Try" doc:id="5c10bec6-2257-44e1-ba70-bda026e16ef6">
+				<ee:transform doc:name="Set variables" doc:id="f01254a6-1169-4957-813f-0698eb3b1c75">
+									<ee:message>
+									</ee:message>
+									<ee:variables>
+										<ee:set-variable variableName="filePath"><![CDATA[%dw 2.0
+output application/json
+---
+vars.externalSystem ++ ".csv"]]></ee:set-variable>
+										<ee:set-variable variableName="workingDirectory"><![CDATA[%dw 2.0
+output application/json
+---
+p("sftp.directory." ++ vars.system)]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+			<logger level="INFO" doc:name="Category Name Logger" doc:id="338f6792-8ddb-4c86-bd4a-0decf435299f" message='#["Category to process: " ++ vars.externalSystem]' />
+			<flow-ref doc:name="Orcale-cloud-common-flow" doc:id="5ac7ab8e-578a-45d8-ae55-1f8046712f11" name="Orcale-cloud-common-flow" />
+<!-- 			<flow-ref doc:name="sftpWrite" doc:id="b08e84b7-caa2-4a5a-9a6a-4539a75a1b46" name="sftpWrite" /> -->
+			<error-handler>
+							<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="c662ccb9-484a-427a-8b01-9f75e296085f" type="ANY">
+								<ee:transform doc:name="Seup errorDara" doc:id="ab9b6dd0-588e-4bc1-b880-cfa564e9f866">
+									<ee:message>
+									</ee:message>
+									<ee:variables>
+										<ee:set-variable variableName="errorInterface"><![CDATA[%dw 2.0
+output application/json
+---
+vars.errorInterface default [] ++ [{
+	"StringName": vars.system,
+    "integrationName": vars.category,
+	"code": if ( error.errorMessage.typedAttributes.statusCode? ) error.errorMessage.typedAttributes.statusCode as String else "500",
+	"error-message": error.errorType.namespace as String ++ ":" ++ error.errorType.identifier as String,
+	"custom-message": if ( isEmpty(payload) ) "N/A" else payload.description,
+	"error-type": error.errorType.identifier,
+	"error-description": error.description,
+	"error-component": message.message.exceptionPayload.info.Element default ""
+}]]]></ee:set-variable>
+									</ee:variables>
+								</ee:transform>
+								<flow-ref doc:name="error-log-fl-ref" doc:id="69f8510d-c7e1-4090-af43-11054951bfc4" name="error-log-fl" />
+								<!-- <flow-ref doc:name="emailNotificationFlow" doc:id="05ceec67-e92f-470b-a2de-107e06fecfc1" 
+									name="emailNotificationFlow"/> -->
+							</on-error-continue>
+						</error-handler>
+					</try>
+<!-- 				</foreach> -->
+		<choice doc:name="Choice"
+			doc:id="cc931383-7203-4f5e-a11e-dae76d3cd800">
+			<when
+				expression="#[sizeOf(vars.errorInterface default [])&gt;0]">
+				<ee:transform doc:name="Setup notificationData"
+					doc:id="6fc0382f-6fad-4401-b842-9781e7101054">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	timeStamp: now(),
+	transactionId: vars.transactionId,
+	applicationName: p('app.name'),
+	environment: p('mule.env'),
+	httpMethod: attributes.method,
+	priority: "ERROR",
+	tracePoint: "Error Flow",
+	message: "Error Occured On the Flow",
+	error: vars.errorInterface map(item,index) -> {
+		StringName: item.StringName,
+		segmentName: item.integrationName,
+		code: item.code,
+		"error-message": item."error-message",
+		"custom-message": item."custom-message",
+		"error-type": item."error-type",
+		"error-description": item."error-description",
+		"error-component": item."error-component"
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<flow-ref doc:name="emailNotificationFlow-ref"
+					doc:id="5fe892a2-ab7e-410f-bcf6-8ef2a9a62ac4"
+					name="emailNotificationFlow" />
+			</when>
+		</choice>
+
+	</sub-flow>
+	<sub-flow name="Orcale-cloud-common-flow"
+		doc:id="a4182cca-689d-44c0-81e5-6057eba1c82b">
+		<choice doc:name="Choice" doc:id="6877c4b9-5f28-4510-a2bb-9533eaebe26d" >
+			<when expression='#[attributes.maskedRequestPath == "/suppliers"]'>
+				<validation:is-true doc:name="Is true" doc:id="223942d1-164f-4a72-8374-ff1ffff8621b" expression="#[vars.days &lt;= 14]" config-ref="Validation_Config" message="exceeded 14 days limit" />
+				<ee:transform doc:name="Request Mapping" doc:id="2999848c-cdcf-43ba-9f00-a810a27dd2e5" >
+					<ee:message >
+						<ee:set-payload resource="dwl/request_mappingSuppliers.dwl" />
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Request Mapping" doc:id="2d9911a5-9404-4d1f-98f3-a5020b7dff7a">
+			<ee:message>
+						<ee:set-payload resource="dwl/request_mappingPurchaseOrders.dwl" />
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Step Logger"
+			doc:id="1efcb616-3200-41e4-9f4d-b5fa3db6535e"
+			message="#[vars.transactionId]" />
+		<logger level="INFO" doc:name="Request Logger"
+			doc:id="46f4cb26-2415-4dcf-9d4d-ba758fb5f1de"
+			message='#["Before Request Logger"]' />
+		<logger level="DEBUG" doc:name="Debug logger"
+			doc:id="12a29f9d-f30e-4873-a5bc-21fa7c5ea055" message="#[payload]" />
+		<until-successful maxRetries="#[p('retry.count')]"
+			doc:name="Until Successful"
+			doc:id="d12bad71-1346-4f01-8b48-3690765afb8e"
+			millisBetweenRetries="#[p('retry.interval')]">
+			<wsc:consume doc:name="Consume"
+				doc:id="f5fac57b-4f0c-4544-b008-2339d38c32e0"
+				config-ref="Web_Service_Consumer_Config" operation="runReport"/>
+		</until-successful>
+		<logger level="INFO" doc:name="Step Logger"
+			doc:id="db7bf86a-e2e6-4893-a88b-28788c962690"
+			message="#[vars.transactionId]" />
+		<logger level="INFO" doc:name="Response Logger"
+			doc:id="b8be3e8e-edd2-4d54-8496-1063cc2ecae3"
+			message='#["After Request Logger"]' />
+		<logger level="DEBUG" doc:name="Debug logger"
+			doc:id="a42ac0ad-96b1-4699-8b48-c3ea99a9b8c4" message="#[payload]" />
+		<choice doc:name="Choice" doc:id="ab6e52dd-e401-44b1-9acc-978a4d9ccf28" >
+			<when expression='#[vars.path == "/purchaseOrders"]'>
+				<ee:transform doc:name="Decode fromBase64" doc:id="0e4c9220-782d-441f-894e-288f759b4250">
+			<ee:message>
+				<ee:set-payload resource="dwl/fromBase64_decode.dwl"></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<ee:transform doc:name="Response mapping" doc:id="65cd74da-7647-4dbf-ba64-964d5fffea2d" >
+					<ee:message >
+						<ee:set-payload resource="dwl/response_csv_mapping.dwl" />
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Decode fromBase64" doc:id="0727b5a5-9c12-4e7d-8d96-45cfab8c2199" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Binaries     
+output application/csv encoding="UTF-8", quoteValues=true, separator=","
+var v = fromBase64(payload.body.runReportResponse[0].reportBytes)
+---
+read(v, "application/csv" ,{escape:"\""})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<ee:transform doc:name="Transform Message" doc:id="44e603ed-e607-44c6-b4bb-bc56f8b3d12c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json 
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>
